@@ -1,0 +1,61 @@
+<html>
+
+<head>
+    <!--
+        WebGL ortho demo
+
+        Copyright:
+        Arno van der Vegt, 2011  
+
+        Contact:
+        legoasimo@gmail.com
+
+        Licence:  
+        Creative Commons Attribution/Share-Alike license
+        http://creativecommons.org/licenses/by-sa/3.0/
+
+        The WebGL setup code was provided by: http://learningwebgl.com
+    -->
+    <title>Stencil shadow demo</title>
+    <script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
+    <script type="text/javascript" src="webgl-utils.js"></script>
+    <script type="text/javascript" src="orthoDemo.js"></script>
+
+    <script id="shader-vs" type="x-shader/x-vertex"> 
+        attribute vec3 aVertexPosition;
+        attribute vec2 aTextureCoord;
+
+        uniform mat4 uMVMatrix;
+        uniform mat4 uPMatrix;
+
+        varying vec2 vTextureCoord;
+
+        void main(void) {
+        gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+            vTextureCoord = aTextureCoord;
+        }
+    </script> 
+
+    <script id="shader-fs" type="x-shader/x-fragment"> 
+        #ifdef GL_ES
+            precision highp float;
+        #endif
+
+        varying vec2 vTextureCoord;
+
+        uniform sampler2D uSampler;
+		uniform sampler2D rttSampler;
+
+        void main(void) {
+            gl_FragColor = texture2D(rttSampler, vec2(vTextureCoord.s, vTextureCoord.t));
+        }
+    </script> 
+</head>
+
+<body onload="webGLStart();">
+    <div style="float:left;margin:20px;width:100%;">
+        <canvas id="demoCanvas" style="border:none;" width="400" height="400"></canvas>
+    </div>
+</body>
+
+</html>
