@@ -45,16 +45,23 @@
 
         uniform sampler2D uSampler;
 		uniform sampler2D rttSampler;
-
+		uniform int 	  isTextureRender;
+		
         void main(void) {
-            gl_FragColor = texture2D(rttSampler, vec2(vTextureCoord.s, vTextureCoord.t));
+			if (isTextureRender == 1) {
+				gl_FragColor = texture2D(uSampler, vTextureCoord);
+			}
+			else
+				gl_FragColor = vec4(texture2D(rttSampler, vTextureCoord - vec2(0, 0.2)).rgb, 1);
+
+
         }
     </script> 
 </head>
 
 <body onload="webGLStart();">
     <div style="float:left;margin:20px;width:100%;">
-        <canvas id="demoCanvas" style="border:none;" width="400" height="400"></canvas>
+        <canvas id="demoCanvas" style="border:none;" width="512" height="512"></canvas>
     </div>
 </body>
 

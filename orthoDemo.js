@@ -102,6 +102,7 @@ function initShaders() {
     shaderProgram.nMatrixUniform  = gl.getUniformLocation(shaderProgram, 'uNMatrix');
     shaderProgram.samplerUniform  = gl.getUniformLocation(shaderProgram, 'uSampler');
 	shaderProgram.samplerRTTUniform  = gl.getUniformLocation(shaderProgram, 'rttSampler');
+	shaderProgram.isTextureRender  = gl.getUniformLocation(shaderProgram, 'isTextureRender');
 }
 
 function setMatrixUniforms() {
@@ -128,8 +129,13 @@ function createTexture(width, height) {
         this.canvas.width  = this.checkSize(width);
         this.canvas.height = this.checkSize(height);
 
-        context.fillStyle = '#FF0000';
-        context.fillRect(0, 0, width, height);
+		context.fillStyle = '#FF0000';
+        context.fillRect(10, 10, this.canvas.width-150, this.canvas.height-150);
+        context.fillStyle = '#000000';
+		context.beginPath();
+		context.moveTo(50, 50);
+		context.lineTo(50, 150);
+		context.stroke();
 
         this.texture = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, this.texture);
@@ -142,27 +148,36 @@ function createTexture(width, height) {
     };
         
     that.createBuffers = function(width, height) {
-        var vertices = [0.0,   0.0,    0.0,
-                        width, 0.0,    0.0,
-                        0.0,   height, 0.0,
-                        width, height, 0.0];
-    
+	
+		var vertices = [];
+		var texCoord = [];
+		for (i = 0; i < height-1; ++i) {
+			for (j = 0; j < width; ++j) {
+				vertices[(i * width + j)*6 + 0] = j * this.canvas.width / (width-1);
+				vertices[(i * width + j)*6 + 1] = i * this.canvas.height / (height-1);
+				vertices[(i * width + j)*6 + 2] = 0;
+			
+				vertices[(i * width + j)*6 + 3] = j * this.canvas.width / (width-1);
+				vertices[(i * width + j)*6 + 4] = (i+1) * this.canvas.height / (height-1);
+				vertices[(i * width + j)*6 + 5] = 0;
+				
+				texCoord[(i * width + j)*4 + 0] = (i + j) / (width + height - 2);
+				texCoord[(i * width + j)*4 + 1] = (i + j) / (width + height - 2);
+				
+				texCoord[(i * width + j)*4 + 2] = (i + 1 + j) / (width + height - 2);
+				texCoord[(i * width + j)*4 + 3] = (i + 1 + j) / (width + height - 2);
+			}
+		}
+		
         this.glPositionBuffer = gl.createBuffer();        
         gl.bindBuffer(gl.ARRAY_BUFFER, this.glPositionBuffer);        
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-        this.glPositionBuffer.numItems = 4;
-
-        var w             = width  / this.canvas.width,
-            h             = height / this.canvas.height,
-            textureCoords = [0.0, 0.0,
-                             w,   0.0,
-                             0.0, h,
-                             w,   h];
+        this.glPositionBuffer.numItems = width * (height - 1) * 2;
         
         this.glTextureCoordBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, this.glTextureCoordBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoords), gl.STATIC_DRAW);
-        this.glTextureCoordBuffer.numItems = 4;        
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texCoord), gl.STATIC_DRAW);
+        this.glTextureCoordBuffer.numItems = width * (height - 1) * 2;   
     };
     
     that.init = function(width, height) {
@@ -176,10 +191,10 @@ function createTexture(width, height) {
     that.render = function(x, y) {
         mat4.translate(mvMatrix, [x, y, 0]);
 
-        gl.activeTexture(gl.TEXTURE0);
+		gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, this.texture);
         gl.uniform1i(shaderProgram.samplerUniform, 0);
-
+		
         gl.bindBuffer(gl.ARRAY_BUFFER, this.glPositionBuffer);
         gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
         gl.bindBuffer(gl.ARRAY_BUFFER, this.glTextureCoordBuffer);
@@ -225,11 +240,13 @@ function initTextureFramebuffer() {
 	
 function drawScene() {
 
+	
 	gl.bindFramebuffer(gl.FRAMEBUFFER, rttFramebuffer);
 	gl.viewport(0, 0, rttFramebuffer.width, rttFramebuffer.height);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 	pMatrix  = mat4.ortho(0, gl.viewportWidth, gl.viewportHeight, 0, 0.001, 100000);
 	mvMatrix = mat4.identity(mat4.create());
+	gl.uniform1i(shaderProgram.isTextureRender, 1);
 	
 	bitmap.render(0, 0);
 	gl.bindTexture(gl.TEXTURE_2D, rttTexture);
@@ -237,11 +254,13 @@ function drawScene() {
 	gl.bindTexture(gl.TEXTURE_2D, null);
 	
 	
+	
 	gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 	gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 	pMatrix  = mat4.ortho(0, gl.viewportWidth, gl.viewportHeight, 0, 0.001, 100000);
 	mvMatrix = mat4.identity(mat4.create());
+	gl.uniform1i(shaderProgram.isTextureRender, 0);
 	
 	gl.activeTexture(gl.TEXTURE2);
 	gl.bindTexture(gl.TEXTURE_2D, rttTexture);
